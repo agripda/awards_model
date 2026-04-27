@@ -1,161 +1,93 @@
-# Solution Design Document (SDD): FACT Shiny Dashboard
-## System Name: FACT (FWO Entitlement Analysis & Compliance Tool) - UI/UX Layer
+
+# 📑 FACT (FWO Entitlement Analysis & Compliance Tool)
+
+[![R-Shiny](https://img.shields.io/badge/R-Shiny-blue.svg)](https://shiny.rstudio.com/)
+[![Python-ML](https://img.shields.io/badge/Python-Machine%20Learning-green.svg)](https://www.python.org/)
+[![License-MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
+## 🎯 Project Overview
+**FACT** is a high-performance, end-to-end data analytics solution designed to streamline the operations of the **Fair Work Ombudsman (FWO)**. It automates the modeling of **Modern Awards** and **Enterprise Agreements** to detect non-compliance and calculate underpayments from massive employer timesheet datasets.
+
+Beyond a simple calculator, FACT is a **Forensic Analytics Platform** that empowers Inspectors to visualize legal evidence and use Machine Learning to detect patterns of data manipulation or systemic wage theft.
 
 ---
 
-## 1. Document Control
+## ✨ Key Features
 
-| Document Title | FACT Shiny Dashboard — Solution Design Document |
-| :--- | :--- |
-| Version | 1.0.1 |
-| Date | 2024-05-22 |
-| Author(s) | B. Kim (Senior Data Analyst Candidate) |
-| Reviewer(s) | Lead UI/UX Architect / Analytics Branch |
+### 1. Automated Entitlement Modeling (R/SQL)
+- **Complex Logic Engine:** Handles multi-tiered rules including weekend penalties, overtime (OT) thresholds, and mandatory unpaid break deductions using vectorized operations.
+- **Star Schema Architecture:** Utilizes a normalized data model (Fact/Dimension) to optimize query performance and ensure data integrity across large-scale audits.
+- **Rule Extensibility:** Designed for regulatory agility; new Award clauses or rate increases can be updated via data configuration without changing the core codebase.
 
-| Version | Date | Description |
-| :--- | :--- | :--- |
-| 1.0.1 | 2024-05-22 | Refined UI architecture for Forensic Wage Auditing |
+### 2. Interactive Analytics Dashboard (R Shiny)
+- **What-if Simulation:** Real-time re-calculation of underpayments when toggling parameters like Award Levels or base hourly rates.
+- **Evidence Visualization:** High-impact "Gap Analysis" charts overlaying Actual Pay vs. Legal Entitlements to serve as court-ready evidence.
+- **Forensic Reporting:** One-click generation of detailed PDF/Excel reports for litigation support.
 
----
-
-## 2. Executive Summary
-
-### Technical Stack
-- **Framework:** R Shiny
-- **UI Components:** `shinydashboard`, `shinyjs`, `bslib`
-- **Visualisation:** `plotly` (Interactivity), `ggplot2` (Static exports)
-- **Tables:** `DT` (DataTables with server-side processing)
-- **Reactive Engine:** R (Tidyverse)
-
-### Purpose
-To provide a high-performance, interactive interface for Fair Work Inspectors to upload payroll data, apply Award-based modeling rules, and visualize underpayment gaps for legal evidence.
-
-### Scope
-| In Scope | Out of Scope |
-| :--- | :--- |
-| Interactive "What-if" parameter tuning | Direct editing of source database records |
-| Visual comparison of Actual vs. Expected pay | Automated bank transfers/payments |
-| Forensic PDF/Excel report generation | Public-facing employee portal |
+### 3. Predictive Regulatory Insights (Python/ML)
+- **Anomaly Detection:** Uses **Isolation Forest** algorithms to flag "too-perfect" or suspiciously consistent payroll records that may indicate record tampering.
+- **Risk Scoring:** Employs **XGBoost** to rank businesses by "Breach Probability," allowing the FWO to allocate investigative resources to high-risk sectors proactively.
 
 ---
 
-## 3. Business Context
+## 🛠 Tech Stack
 
-### Problem Statement
-Inspectors struggle to find "the story" in massive spreadsheets. Without a visual tool, it is difficult to identify patterns of systemic wage theft or explain complex calculations to employers/lawyers.
-
-### Objectives
-- **Evidence Visualization:** Clearly show the "Gap" between legal requirements and actual payments.
-- **Immediate Feedback:** Allow inspectors to change Award Levels and see results instantly.
-- **Standardization:** Ensure all inspectors use the same validated calculation engine.
+- **Frontend/UI:** R Shiny, Shinydashboard, Plotly (Interactive Visuals)
+- **Data Engineering:** R (Tidyverse), SQL (Relational Modeling)
+- **Machine Learning:** Python (Scikit-learn, XGBoost)
+- **Database:** Azure SQL / Snowflake (Optimized for 1M+ rows)
+- **DevOps:** GitHub Actions (CI/CD), Git
 
 ---
 
-## 4. Functional Requirements
+## 📂 Project Structure
 
-| ID | Requirement | Description | Priority |
-| :--- | :--- | :--- | :--- |
-| FR-UI-01 | Parameter Sidebar | Sidebar to adjust Base Rates, OT thresholds, and Award Levels. | High |
-| FR-UI-02 | Reactive Dashboard | KPIs (Total Underpaid, Breach Count) update in real-time. | High |
-| FR-UI-03 | Comparison Plot | Overlay bar charts of Expected vs. Actual pay. | High |
-| FR-UI-04 | Forensic Table | Drill-down table showing daily-level breakdown of every cent. | Medium |
-| FR-UI-05 | Export Module | Button to generate a court-ready PDF report of the current view. | Medium |
-
----
-
-## 5. Non-Functional Requirements
-
-| Category | Requirement |
-| :--- | :--- |
-| Performance | Reactive UI elements must update within < 1 second for 50k records. |
-| Accessibility | High-contrast themes for WCAG 2.1 compliance (Government standard). |
-| Responsiveness | Sidebar must be collapsible to support laptop-screen investigations. |
-| Integrity | UI must prevent "impossible" inputs (e.g., negative wage rates). |
-
----
-
-## 6. High-Level Architecture (Shiny Pattern)
-
-```mermaid
-graph TD
-    User([User/Inspector]) -- Inputs/Upload --> UI[Shiny UI: Sidebar/Tabs]
-    UI --> RE[Reactive Engine: Server.R]
-    RE --> MD[Model: Star Schema Join]
-    MD --> RE
-    RE --> PL[Plotly Charts]
-    RE --> DT[DataTables]
-    PL --> UI
-    DT --> UI
-```
-
-### 6.1 UI Overview
-The interface follows a **Master-Detail** pattern. The sidebar controls the "Master" parameters (The Law), while the main body displays the "Detail" (The Evidence).
-
-### 6.2 State Management
-The application state is managed via **Shiny Reactivity**. The central state object (`processed_data`) is a reactive expression that re-triggers whenever inputs change.
-
----
-
-## 7. Detailed Design
-
-### 7.1 Reactive Module: The Engine
-*   **Responsibility:** Joins Fact (Timesheets) with Dim (Awards/Rates) and computes deltas.
-*   **Trigger:** `input$base_rate`, `input$award_level`, or `input$file_upload`.
-*   **Logic:** Vectorized Tidyverse operations.
-
-### 7.2 Visual Module: Plotly Comparison
-*   **Type:** Grouped Bar Chart.
-*   **X-axis:** Time (Daily Granularity).
-*   **Y-axis:** Currency ($ AUD).
-*   **Interactivity:** Hover-over to see specific penalty rates applied on that day.
-
-### 7.3 Data Module: DT Forensic Table
-*   **Features:** Conditional formatting (Red for Underpaid, Green for Compliant).
-*   **Filtering:** Allows searching for specific dates or high-value breaches.
-
-### 7.4 API / Server Logic Example
-```R
-# Example of Reactive Engine State
-final_calculation <- reactive({
-  # 1. Fetch Normalised Fact Table
-  # 2. Join with Dimension Tables based on UI Selectors
-  # 3. Perform Vectorized Math (Expected - Actual)
-  # 4. Return Dataframe for Plots and Tables
-})
+```text
+.
+├── app/
+│   ├── ui.R             # Shiny Dashboard UI definition
+│   ├── server.R         # Reactive engine and calculation logic
+│   └── global.R         # Data loading and global parameters
+├── engine/
+│   ├── award_logic.R    # Core R functions for entitlement modeling
+│   └── ml_anomaly.py    # Python scripts for fraud & risk detection
+├── data/
+│   ├── dim_awards.csv   # Award dimension (Metadata & Rules)
+│   ├── dim_rates.csv    # Pay rates dimension (Normalized Values)
+│   └── sample_fact.csv  # Mock employer timesheet data (Daily Granularity)
+├── docs/
+│   └── SDD_FACT.md      # Solution Design Document
+└── README.md
 ```
 
 ---
 
-## 8. Security Design
+## 🚀 Getting Started
 
-*   **Session Management:** Auto-timeout after 30 minutes of inactivity to protect sensitive payroll data.
-*   **Sanitization:** All file uploads are scanned for malicious scripts; filenames are sanitized.
-*   **Local Processing:** Data is processed in-memory and purged upon session end (Privacy by Design).
+### Prerequisites
+- R (>= 4.0.0)
+- Python (>= 3.8)
+- R Packages: `shiny`, `tidyverse`, `lubridate`, `plotly`, `DT`
+- Python Packages: `pandas`, `scikit-learn`, `xgboost`
+
+### Installation
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/dkims/FACT-FWO-Tool.git
+   ```
+2. Install R dependencies:
+   ```R
+   install.packages(c("shiny", "shinydashboard", "tidyverse", "plotly", "DT"))
+   ```
+3. Run the Shiny App:
+   ```R
+   shiny::runApp('app/')
+   ```
 
 ---
 
-## 9. Error Handling & Fallbacks
+## 💡 Why FACT? (Business Impact)
 
-| Scenario | Handling Strategy |
-| :--- | :--- |
-| Uploading non-CSV file | `shinyfeedback` toast notification + Red UI validation message. |
-| Negative rate input | `updateNumericInput` to force minimum value of 0. |
-| Calculation Error | `tryCatch` block displaying "Error in Award Logic" instead of crashing. |
-
----
-
-## 10. Observability & Monitoring
-
-*   **Audit Log:** Shiny server logs every "Export Report" action with a timestamp.
-*   **Performance Trace:** Using `profvis` during development to identify reactive bottlenecks.
-
----
-
-## 11. Future Enhancements (Roadmap)
-
-### Short Term
-*   **Scenario Comparison:** Side-by-side view of two different Award interpretations.
-*   **Interactive Tooltips:** Pop-ups that quote the specific Award clause being applied.
-
-### Long Term
-*   **LLM "Explainer":** An AI sidebar that generates a natural language summary of the investigation findings ("The employee was underpaid primarily due to unpaid Sunday penalties...").
+1. **Precision:** Eliminates manual calculation errors, ensuring legal findings are 100% defensible.
+2. **Efficiency:** Reduces the audit time for large-scale enterprises from months to days.
+3. **Proactive Regulation:** Transitions the agency from reactive complaint-handling to data-driven proactive enforcement.

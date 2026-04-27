@@ -1,4 +1,4 @@
-# 필요한 패키지 설치 및 로드
+# Install and load required packages
 # install.packages(c("shiny", "shinydashboard", "tidyverse", "lubridate", "plotly", "DT"))
 library(shiny)
 library(shinydashboard)
@@ -8,10 +8,10 @@ library(plotly)
 library(DT)
 
 # ==========================================
-# 1. 고정 데이터 및 엔진 (Global)
+# 1. Global Data and Engine
 # ==========================================
 
-# Dim Tables (기준 정보)
+# Dim Tables (Reference Information)
 dim_awards <- tibble(
   award_id = "REST_2020",
   award_name = "Restaurant Industry Award 2020",
@@ -36,9 +36,9 @@ dim_employees <- tibble(
   level = "Level 2"
 )
 
-# 분석 엔진 함수
+# Compliance analysis engine
 run_compliance_analysis <- function(fact, emp, awd, rates, user_base_rate) {
-  # 사용자가 UI에서 수정한 시급 반영 (What-if 분석 기능)
+  # Apply user-modified base rate (What-if analysis)
   current_rates <- rates %>% mutate(base_rate = user_base_rate)
   
   fact %>%
@@ -67,7 +67,7 @@ run_compliance_analysis <- function(fact, emp, awd, rates, user_base_rate) {
 }
 
 # ==========================================
-# 2. UI 정의
+# 2. UI Definition
 # ==========================================
 ui <- dashboardPage(
   dashboardHeader(title = "FWO Underpayment Tracker"),
@@ -81,12 +81,12 @@ ui <- dashboardPage(
     h4(" [Award Settings]", style = "padding-left: 15px;"),
     numericInput("base_rate", "Base Rate ($/hr):", value = 25.21, step = 0.1),
     numericInput("ot_limit", "Daily OT Threshold:", value = 8.0, step = 0.5),
-    helpText("Adjust rates to see What-if scenarios.")
+    helpText("Adjust rates to explore What-if scenarios.")
   ),
   
   dashboardBody(
     tabItems(
-      # Tab 1: 시각화 대시보드
+      # Tab 1: Visualization Dashboard
       tabItem(tabName = "dashboard",
         fluidRow(
           valueBoxOutput("total_underpaid_box", width = 4),
@@ -101,7 +101,7 @@ ui <- dashboardPage(
         )
       ),
       
-      # Tab 2: 상세 데이터 테이블
+      # Tab 2: Detailed Data Table
       tabItem(tabName = "data",
         fluidRow(
           box(title = "Calculated Compliance Table", width = 12,
@@ -113,13 +113,13 @@ ui <- dashboardPage(
 )
 
 # ==========================================
-# 3. Server 정의
+# 3. Server Definition
 # ==========================================
 server <- function(input, output) {
   
-  # 반응형 분석 실행
+  # Reactive analysis execution
   processed_data <- reactive({
-    # 초기 팩트 데이터 (사용자 입력에 반응)
+    # Initial fact data (reactive to user input)
     fact_data <- tibble(
       timesheet_id = 1:4,
       emp_id = "E001",
@@ -129,11 +129,11 @@ server <- function(input, output) {
       actual_paid = c(200.0, 250.0, 250.0, 150.0)
     )
     
-    # 분석 엔진 실행 (UI 입력값 반영)
+    # Run analysis engine (reflect UI inputs)
     run_compliance_analysis(fact_data, dim_employees, dim_awards, dim_pay_rates, input$base_rate)
   })
   
-  # KPI 박스 출력
+  # KPI Boxes
   output$total_underpaid_box <- renderValueBox({
     total <- sum(processed_data()$underpayment[processed_data()$underpayment > 0])
     valueBox(paste0("$", round(total, 2)), "Total Underpayment", icon = icon("money-bill-wave"), color = "red")
@@ -149,7 +149,7 @@ server <- function(input, output) {
     valueBox(paste0("$", max_gap), "Max Daily Gap", icon = icon("chart-line"), color = "purple")
   })
   
-  # 시각화 1: 비교 차트
+  # Visualization 1: Pay Comparison Chart
   output$pay_comparison_plot <- renderPlotly({
     p <- processed_data() %>%
       pivot_longer(cols = c(expected_pay, actual_paid), names_to = "type", values_to = "amount") %>%
@@ -161,18 +161,18 @@ server <- function(input, output) {
     ggplotly(p)
   })
   
-  # 시각화 2: 파이 차트
+  # Visualization 2: Status Pie Chart
   output$status_pie_plot <- renderPlotly({
     df_pie <- processed_data() %>% count(status)
     plot_ly(df_pie, labels = ~status, values = ~n, type = 'pie', marker = list(colors = c('#28a745', '#dc3545')))
   })
   
-  # 데이터 테이블 출력
+  # Data Table Output
   output$full_table <- renderDT({
     datatable(processed_data(), options = list(pageLength = 5)) %>%
       formatStyle('status', color = styleEqual(c("Underpaid", "Compliant"), c('red', 'green')))
   })
 }
 
-# 앱 실행
+# Run App
 shinyApp(ui, server)

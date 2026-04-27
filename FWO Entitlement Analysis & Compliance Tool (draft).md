@@ -8,7 +8,7 @@
 **Document Title:** FACT — Solution Design Document  
 **Version:** 1.0.0  
 **Date:** 2024-05-22  
-**Author(s):** David Kim (Senior Data Analyst Candidate)  
+**Author(s):** B. Kim  
 **Reviewer(s):** Analytics & Intelligence Branch Lead  
 **Approver(s):** Regulatory Transformation Group Director  
 
@@ -168,7 +168,3 @@ FACT uses a reactive state pattern in R Shiny to ensure that if a user changes a
 *   **Predictive Enforcement:** Use XGBoost to identify industries with a high risk of systemic wage theft before complaints are filed.
 *   **Collaborative Investigation:** Multi-user workspace for large-scale litigation teams to annotate data.
 
----
-**David Kim**  
-*Senior Data Analyst Candidate*  
-*Expert in Data Engineering, Modeling & Regulatory Analytics*
