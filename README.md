@@ -10,7 +10,7 @@
 | :--- | :--- |
 | Version | 1.0.0 |
 | Date | 2024-05-22 |
-| Author(s) | David Kim (Senior Data Analyst Candidate) |
+| Author(s) | B. Kim
 | Reviewer(s) | Analytics & Intelligence Branch Lead |
 | Approver(s) | Regulatory Transformation Group Director |
 
